@@ -1,0 +1,84 @@
+// Definición de pines
+const int ledPins[4] = {2, 4, 18, 19}; // Pines para los LEDs
+const int modeButtonPin = 33;   // Pin para el botón de cambiar modo
+const int incrementButtonPin = 25; // Pin para el botón de incrementar
+const int decrementButtonPin = 26; // Pin para el botón de decrementar
+
+// Variables de estado
+int counter_binary = 0;
+int counter_decimal = 0;
+int decadas[5] = {0b0000, 0b0001, 0b0010, 0b0100, 0b1000};
+int j = 0;
+bool binaryMode = true; // true para modo binario, false para modo en décadas
+bool modeButtonState = LOW;
+bool incrementButtonState = LOW;
+bool decrementButtonState = LOW;
+
+void setup() {
+  // Inicialización de pines
+  for (int i = 0; i < 4; i++) {
+    pinMode(ledPins[i], OUTPUT);
+  }
+  pinMode(modeButtonPin, INPUT_PULLUP);
+  pinMode(incrementButtonPin, INPUT_PULLUP);
+  pinMode(decrementButtonPin, INPUT_PULLUP);
+  
+  // Inicialización del serial
+  Serial.begin(115200);
+}
+
+void loop() {
+  // Leer el estado de los botones
+  bool newModeButtonState = digitalRead(modeButtonPin);
+  bool newIncrementButtonState = digitalRead(incrementButtonPin);
+  bool newDecrementButtonState = digitalRead(decrementButtonPin);
+  
+  // Cambiar modo de conteo al presionar el botón de modo
+  if (newModeButtonState == LOW && modeButtonState == HIGH) {
+    binaryMode = !binaryMode;
+    Serial.println(binaryMode ? "Modo binario" : "Modo en décadas");
+  }
+  modeButtonState = newModeButtonState;
+  
+  // Incrementar contador al presionar el botón de incrementar
+  if (newIncrementButtonState == LOW && incrementButtonState == HIGH) {
+    if (binaryMode) {
+      counter_binary = (counter_binary + 1) & 0xF; // Mantener el contador dentro de 4 bits (0-15)
+    } else {
+      counter_decimal = (counter_decimal + 1);
+      j = counter_decimal % 5;
+    }
+    Serial.println(counter_binary);
+    Serial.println(counter_decimal);
+    Serial.println(j);
+  }
+  incrementButtonState = newIncrementButtonState;
+  
+  // Decrementar contador al presionar el botón de decrementar
+  if (newDecrementButtonState == LOW && decrementButtonState == HIGH) {
+    if (binaryMode) {
+      counter_binary = (counter_binary - 1) & 0xF; // Mantener el contador dentro de 4 bits (0-15)
+    } else {
+      counter_decimal = (counter_decimal - 1);
+      j = counter_decimal % 5;
+    }
+    Serial.println(counter_binary);
+    Serial.println(counter_decimal);
+    Serial.println(j);
+  }
+  decrementButtonState = newDecrementButtonState;
+  
+  // Actualizar LEDs
+
+  if (binaryMode) {
+      for (int i = 0; i < 4; i++) {
+    digitalWrite(ledPins[i], (counter_binary >> i) & 0x01);
+    }
+  } else {
+    for (int i = 0; i < 4; i++) {
+      digitalWrite(ledPins[i], (decadas[j] >> i) & 0x01);
+    }
+  }
+  // Pequeño retraso para evitar rebotes
+  delay(50);
+}
