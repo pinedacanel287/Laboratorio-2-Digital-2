@@ -1,0 +1,86 @@
+#include<driver/gpio.h>
+
+// Definición de pines
+const int ledPins[4] = {GPIO_NUM_2, GPIO_NUM_4, GPIO_NUM_18, GPIO_NUM_19}; // Pines para los LEDs
+const int modeButtonPin = 33;   // Pin para el botón de cambiar modo
+const int incrementButtonPin = 25; // Pin para el botón de incrementar
+const int decrementButtonPin = 26; // Pin para el botón de decrementar
+
+// Variables de estado
+int counter_binary = 0;
+int counter_decimal = 0;
+int decadas[5] = {0b0000, 0b0001, 0b0010, 0b0100, 0b1000};
+int j = 0;
+bool binaryMode = true; // true para modo binario, false para modo en décadas
+bool gpio_set_level(modeButtonPin,0);
+bool gpio_set_level(incrementButtonState,0);
+bool gpio_set_level(decrementButtonState,0);
+
+void setup() {
+  // Inicialización de pines
+  for (int i = 0; i < 4; i++) {
+    gpio_set_direction(ledPins[i], GPIO_MODE_OUTPUT:PULLUP);
+  }
+  gpio_set_direction(modeButtonPin, GPIO_MODE_INPUT:PULLUP_ONLY);
+  gpio_set_direction(incrementButtonPin, GPIO_MODE_INPUT:PULLDOWN_ONLY);
+  gpio_set_direction(decrementButtonPin, GPIO_MODE_INPUT:PULLUP_ONLY);
+  
+  // Inicialización del serial
+  Serial.begin(115200);
+}
+
+void loop() {
+  // Leer el estado de los botones
+  bool newModeButtonState = gpio_get_level(modeButtonPin);
+  bool newIncrementButtonState = gpio_get_level(incrementButtonPin);
+  bool newDecrementButtonState = gpio_get_level(decrementButtonPin);
+  
+  // Cambiar modo de conteo al presionar el botón de modo
+  if (newModeButtonState == LOW && modeButtonState == HIGH) {
+    binaryMode = !binaryMode;
+    Serial.println(binaryMode ? "Modo binario" : "Modo en décadas");
+  }
+  modeButtonState = newModeButtonState;
+  
+  // Incrementar contador al presionar el botón de incrementar
+  if (newIncrementButtonState == LOW && incrementButtonState == HIGH) {
+    if (binaryMode) {
+      counter_binary = (counter_binary + 1) & 0xF; // Mantener el contador dentro de 4 bits (0-15)
+    } else {
+      counter_decimal = (counter_decimal + 1);
+      j = counter_decimal % 5;
+    }
+    Serial.println(counter_binary);
+    Serial.println(counter_decimal);
+    Serial.println(j);
+  }
+  incrementButtonState = newIncrementButtonState;
+  
+  // Decrementar contador al presionar el botón de decrementar
+  if (newDecrementButtonState == LOW && decrementButtonState == HIGH) {
+    if (binaryMode) {
+      counter_binary = (counter_binary - 1) & 0xF; // Mantener el contador dentro de 4 bits (0-15)
+    } else {
+      counter_decimal = (counter_decimal - 1);
+      j = counter_decimal % 5;
+    }
+    Serial.println(counter_binary);
+    Serial.println(counter_decimal);
+    Serial.println(j);
+  }
+  decrementButtonState = newDecrementButtonState;
+  
+  // Actualizar LEDs
+
+  if (binaryMode) {
+      for (int i = 0; i < 4; i++) {
+    digitalWrite(ledPins[i], (counter_binary >> i) & 0x01);
+    }
+  } else {
+    for (int i = 0; i < 4; i++) {
+      digitalWrite(ledPins[i], (decadas[j] >> i) & 0x01);
+    }
+  }
+  // Pequeño retraso para evitar rebotes
+  delay(50);
+}
